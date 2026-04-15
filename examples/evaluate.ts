@@ -1,4 +1,4 @@
-import { Draft, Rejection, Opposition, Node } from '@zimtsui/iterflow';
+import { Draft, Rejection, Opposition, Node } from '@zimtsui/dagflow';
 import OpenAI from 'openai';
 declare const openai: OpenAI;
 

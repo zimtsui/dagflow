@@ -42,7 +42,7 @@ export namespace Node {
                 for (const name of Object.keys(this.dnm) as (keyof dnm)[]) {
                     const node = this.dnm[name]!;
                     const draft = await node.repeat();
-                    if (draft.getTimestamp() > this.draft.getTimestamp()) {} else throw new CacheMiss();
+                    if (draft.getTimestamp() > this.draft.getTimestamp()) throw new CacheMiss();
                 }
                 return this.draft;
             } catch (e) {
@@ -66,32 +66,40 @@ export namespace Node {
         public map<nextdraft>(
             f: (draft: draft) => Promise<nextdraft>,
         ): Node<nextdraft, rejection, opposition> {
-            const dnm = {
-                incoming: this,
-            } as const satisfies Node.DepNodeMap.Proto;
-            return new Node.Instance<nextdraft, rejection, opposition, typeof dnm>(this.mapgenerate(f), dnm);
+            return new Mapped(this, f);
         }
+    }
 
-        protected async *mapgenerate<nextdraft>(
-            f: (draft: draft) => Promise<nextdraft>,
-        ): Node.Generator<nextdraft, rejection, opposition> {
-            const draft = await this.repeat();
-            const nextdraft = await f(draft.extract());
-            let output: Draft<nextdraft> | Opposition<opposition> = Draft.from(nextdraft);
-            for (;;) {
-                const feedback: void | Rejection<rejection> = yield output;
-                const input: Draft<draft> | Opposition<opposition> = feedback instanceof Rejection.Instance
-                    ? await this.reject(feedback)
-                    : await this.repeat();
-                if (input instanceof Draft.Instance) {
-                    const draft = input;
-                    const nextdraft = await f(draft.extract());
-                    output = Draft.from(nextdraft);
-                } else if (input instanceof Opposition.Instance) {
-                    output = input;
-                } else throw new Error();
+    export class Mapped<draft, nextdraft, rejection, opposition> implements Node<nextdraft, rejection, opposition> {
+        public constructor(
+            protected node: Node<draft, rejection, opposition>,
+            protected f: (draft: draft) => Promise<nextdraft>,
+        ) {}
+        protected draft: Draft.Stamped<nextdraft> | null = null;
+        public async repeat(): Promise<Draft.Stamped<nextdraft>> {
+            try {
+                if (this.draft) {} else throw new CacheMiss();
+                const draft = await this.node.repeat();
+                if (draft.getTimestamp() > this.draft.getTimestamp()) throw new CacheMiss();
+                return this.draft;
+            } catch (e) {
+                const draft = await this.node.repeat();
+                return this.draft = Draft.Stamped.create(timestamp++, await this.f(draft.extract()));
             }
+
+
         }
+        public async reject(rejection: Rejection<rejection>): Promise<Draft.Stamped<nextdraft> | Opposition<opposition>> {
+            const output = await this.node.reject(rejection);
+            if (output instanceof Opposition.Instance) return output;
+            return Draft.Stamped.create(timestamp++, await this.f(output.extract()));
+        }
+        public map<nextnextdraft>(
+            f: (draft: nextdraft) => Promise<nextnextdraft>,
+        ): Node<nextnextdraft, rejection, opposition> {
+            return new Mapped(this, f);
+        }
+        public async [Symbol.asyncDispose](): Promise<void> {}
     }
 
     export type Proto = Node<unknown, never, unknown>;

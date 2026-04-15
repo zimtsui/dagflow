@@ -1,4 +1,4 @@
-import { Node } from '@zimtsui/iterflow';
+import { Node } from '@zimtsui/dagflow';
 declare function optimize(problem: string): Node.Generator<string, string, string>;
 declare function evaluate1(problem: string, dnm: evaluate1.DepNodeMap): Node.Generator<void, never, never>;
 declare namespace evaluate1 {
