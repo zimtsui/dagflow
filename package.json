@@ -1,0 +1,24 @@
+{
+  "name": "@zimtsui/dagflow",
+  "exports": "./build/exports.js",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zimtsui/dagflow.git"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "npm run build && ava ./test/test.ts",
+    "build": "tsc -b ./src/tsconfig.json",
+    "clean": "rm -rf ./build",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "author": "Zim",
+  "devDependencies": {
+    "ava": "^7.0.0",
+    "openai": "^6.29.0",
+    "typescript": "^6.0.2"
+  }
+}
