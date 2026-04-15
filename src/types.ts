@@ -5,7 +5,7 @@ export type Draft<draft> = Draft.Instance<draft>;
 export namespace Draft {
     export class Instance<out draft> {
         protected declare [NOMINAL]: never;
-        public constructor(protected raw: draft) {}
+        public constructor(public signal: AbortSignal, protected raw: draft) {}
         public [Symbol.toPrimitive](): never {
             throw new Error();
         }
@@ -13,27 +13,10 @@ export namespace Draft {
             return this.raw;
         }
     }
-    export function from<draft>(raw: draft): Draft<draft>;
-    export function from(): Draft<void>;
-    export function from<draft>(raw?: draft): Draft<draft> {
-        return new Draft.Instance(raw as draft);
-    }
-
-    export type Stamped<draft> = Stamped.Instance<draft>;
-    export namespace Stamped {
-        export class Instance<draft> extends Draft.Instance<draft> {
-            public constructor(public timestamp: number, raw: draft) {
-                super(raw);
-            }
-            public getTimestamp(): number {
-                return this.timestamp;
-            }
-        }
-        export function create<draft>(timestamp: number, raw: draft): Stamped<draft>;
-        export function create(timestamp: number): Stamped<void>;
-        export function create<draft>(timestamp: number, raw?: draft): Stamped<draft> {
-            return new Stamped.Instance(timestamp, raw as draft);
-        }
+    export function from<draft>(signal: AbortSignal, raw: draft): Draft<draft>;
+    export function from(signal: AbortSignal): Draft<void>;
+    export function from<draft>(signal: AbortSignal, raw?: draft): Draft<draft> {
+        return new Draft.Instance<draft>(signal, raw as draft);
     }
 }
 
