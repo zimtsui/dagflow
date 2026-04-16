@@ -26,6 +26,8 @@ export namespace Generator {
             protected raw: Generator<draft, rejection, opposition>,
         ) {}
 
+        protected mutex = Mutex.release();
+
         public async next(feedback: void | Rejection<rejection>): Promise<IteratorYieldResult<Draft<draft> | Opposition<opposition>>> {
             await this.mutex.acquire();
             try {
@@ -47,6 +49,7 @@ export namespace Generator {
         public async [Symbol.asyncDispose](): Promise<void> {
             await this.mutex.acquire();
             try {
+                this.ac.abort();
                 return await this.raw[Symbol.asyncDispose]?.();
             } finally {
                 this.mutex.release();
@@ -66,6 +69,5 @@ export namespace Generator {
             return new Generator.Cache(draft, ac, raw);
         }
 
-        protected mutex = Mutex.release();
     }
 }
