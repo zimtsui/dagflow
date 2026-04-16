@@ -12,25 +12,21 @@ export class Node<
      */
     protected constructor(
         protected gencache: Generator.Cache<draft, rejection, opposition>,
-    ) {
-        this.debate = Debate.capture(gencache);
-    }
-    protected debate: Debate<draft, rejection, opposition>;
+    ) {}
 
     public async next(): Promise<IteratorYieldResult<Debate<draft, rejection, opposition>>> {
+        await this.gencache.mutex.acquire();
         try {
-            this.debate.signal.throwIfAborted();
+            const draft = this.gencache.current();
+            draft.signal.throwIfAborted();
         } catch (e) {
             if (e instanceof Draft.AbortError) {} else throw e;
-            await this.gencache.mutex.acquire();
-            try {
-                await this.gencache.throw(e).then(r => r.value);
-                this.debate = Debate.capture(this.gencache);
-            } finally {
-                this.gencache.mutex.release();
-            }
+            await this.gencache.throw(e).then(r => r.value);
+        } finally {
+            this.gencache.mutex.release();
         }
-        return { value: this.debate, done: false };
+        const debate = Debate.capture(this.gencache);
+        return { value: debate, done: false };
     }
 
     public async [Symbol.asyncDispose](): Promise<void> {

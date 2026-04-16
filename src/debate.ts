@@ -24,7 +24,7 @@ export namespace Debate {
             await this.gencache.mutex.acquire();
             try {
                 this.signal.throwIfAborted();
-                const output = await this.gencache.next(rejection);
+                const output = await this.gencache.next(rejection).then(r => r.value);
                 if (output instanceof Opposition.Instance) return { done: false, value: output };
                 this.signal.throwIfAborted();
                 throw new Error();
