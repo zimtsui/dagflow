@@ -14,10 +14,10 @@ export namespace Draft {
             return this.raw;
         }
     }
-    export function from<draft>(signal: AbortSignal, raw: draft): Draft<draft>;
-    export function from(signal: AbortSignal): Draft<void>;
-    export function from<draft>(signal: AbortSignal, raw?: draft): Draft<draft> {
-        return new Draft.Instance<draft>(signal, raw as draft);
+    export function from<draft>(signals: AbortSignal[], raw: draft): Draft<draft>;
+    export function from(signals: AbortSignal[]): Draft<void>;
+    export function from<draft>(signals: AbortSignal[], raw?: draft): Draft<draft> {
+        return new Draft.Instance<draft>(AbortSignal.any(signals), raw as draft);
     }
 
     export class AbortError extends Error {}

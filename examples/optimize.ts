@@ -20,7 +20,7 @@ export async function *optimize(problem: string): Generator<string, string, stri
         messages.push(completion.choices[0]!.message);
         const feedback = completion.choices[0]!.message.content! === 'OPPOSE'
             ? yield Opposition.from('My answer is correct.')
-            : yield Draft.from(new AbortSignal(), completion.choices[0]!.message.content!);
+            : yield Draft.from([], completion.choices[0]!.message.content!);
         if (feedback instanceof Opposition.Instance) {
             const rejection = feedback;
             messages.push({

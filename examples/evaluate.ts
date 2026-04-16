@@ -20,7 +20,7 @@ export async function *evaluate(problem: string, optimizer: Node<string, string,
         const completion = await openai.chat.completions.create({ model: 'gpt-4o', messages });
         messages.push(completion.choices[0]!.message);
         if (completion.choices[0]!.message.content === 'ACCEPT') {
-            yield Draft.from(debate.signal, Number.parseInt(debate.extract()));
+            yield Draft.from([debate.signal], Number.parseInt(debate.extract()));
             throw new Error();
         } else {
             const opposition = await debate.next(Rejection.from(completion.choices[0]!.message.content!)).then(r => r.value);

@@ -1,6 +1,6 @@
 import { Generator } from './generator.ts';
 import { Debate } from './debate.ts';
-import { Draft, Opposition } from './types.ts';
+import { Draft, Opposition, Rejection } from './types.ts';
 
 
 
@@ -48,10 +48,13 @@ export class Node<
         for (;;) try {
             const thisDebate = await this.next().then(r => r.value);
             const afterDebate = await after.next().then(r => r.value);
-            const signal = AbortSignal.any([thisDebate.signal, afterDebate.signal]);
-            signal.throwIfAborted();
-            let output: Draft<nextdraft> | Opposition<opposition> = Draft.from(signal, await f(thisDebate.extract()));
-            for (;;) output = await thisDebate.next(yield output).then(r => r.value);
+            const signals = [thisDebate.signal, afterDebate.signal];
+            const draft = Draft.from(signals, await f(thisDebate.extract()));
+            for (let output: Draft<nextdraft> | Opposition<opposition> = draft;;) {
+                const rejection: Rejection<rejection> = yield output;
+                draft.signal.throwIfAborted();
+                output = await thisDebate.next(rejection).then(r => r.value);
+            }
         } catch (e) {
             if (e instanceof Draft.AbortError) {} else throw e;
         }
@@ -64,9 +67,10 @@ export class Node<
     protected static async *allgen(nodes: Node<unknown, never, unknown>[]): Generator<void, never, never> {
         for (;;) try {
             const debates = await Promise.all(nodes.map(node => node.next().then(r => r.value)));
-            const signal = AbortSignal.any(debates.map(debate => debate.signal));
-            signal.throwIfAborted();
-            yield Draft.from(signal);
+            const signals = debates.map(debate => debate.signal);
+            const draft = Draft.from(signals);
+            draft.signal.throwIfAborted();
+            yield draft;
             throw new Error();
         } catch (e) {
             if (e instanceof Draft.AbortError) {} else throw e;
@@ -79,7 +83,7 @@ export class Node<
 
     protected static async *emptygen(): Generator<void, never, never> {
         for (;;) try {
-            yield Draft.from(new AbortSignal());
+            yield Draft.from([]);
         } catch (e) {
             if (e instanceof Draft.AbortError) {} else throw e;
         }

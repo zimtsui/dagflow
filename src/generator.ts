@@ -23,11 +23,14 @@ export namespace Generator {
          * @param raw Ownership transferred.
          */
         protected constructor(
-            protected draft: Draft<draft>,
-            protected ac: AbortController,
+            draft: Draft<draft>,
             protected raw: Generator<draft, rejection, opposition>,
-        ) {}
+        ) {
+            this.draft = Draft.from([this.ac.signal, draft.signal], draft.extract());
+        }
 
+        protected ac = new AbortController();
+        protected draft: Draft<draft>;
         protected mutex = Mutex.release();
 
         public async next(rejection: Rejection<rejection>): Promise<IteratorYieldResult<Draft<draft> | Opposition<opposition>>> {
@@ -38,7 +41,7 @@ export namespace Generator {
                 this.ac.abort(new Draft.AbortError());
                 this.ac = new AbortController();
                 this.draft = Draft.from(
-                    AbortSignal.any([this.ac.signal, output.signal]),
+                    [this.ac.signal, output.signal],
                     output.extract(),
                 );
                 return { value: this.draft, done: false };
@@ -55,7 +58,7 @@ export namespace Generator {
                 this.ac.abort(e);
                 this.ac = new AbortController();
                 this.draft = Draft.from(
-                    AbortSignal.any([this.ac.signal, this.draft.signal]),
+                    [this.ac.signal, this.draft.signal],
                     output.extract(),
                 );
                 return { value: this.draft, done: false };
@@ -90,9 +93,7 @@ export namespace Generator {
         ): Promise<Generator.Cache<draft, rejection, opposition>> {
             const output = await raw.next().then(r => r.value);
             if (output instanceof Draft.Instance) {} else throw new Error();
-            const ac = new AbortController();
-            const draft = Draft.from(ac.signal, output.extract());
-            return new Generator.Cache(draft, ac, raw);
+            return new Generator.Cache(output, raw);
         }
 
     }
