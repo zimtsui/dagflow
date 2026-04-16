@@ -13,7 +13,7 @@ export namespace Debate {
         public constructor(
             protected gencache: Generator.Cache<draft, rejection, opposition>,
         ) {
-            const draft = gencache.lazy();
+            const draft = gencache.current();
             super(draft.signal, draft.extract());
         }
 
@@ -29,7 +29,7 @@ export namespace Debate {
         }
     }
 
-    export function create<draft, rejection, opposition>(
+    export function capture<draft, rejection, opposition>(
         gencache: Generator.Cache<draft, rejection, opposition>,
     ): Debate<draft, rejection, opposition> {
         return new Debate.Instance(gencache);

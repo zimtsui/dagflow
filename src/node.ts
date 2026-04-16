@@ -12,11 +12,20 @@ export class Node<
      */
     protected constructor(
         protected gencache: Generator.Cache<draft, rejection, opposition>,
-    ) {}
+    ) {
+        this.debate = Debate.capture(gencache);
+    }
+    protected debate: Debate<draft, rejection, opposition>;
 
     public async next(): Promise<IteratorYieldResult<Debate<draft, rejection, opposition>>> {
-        const debate = Debate.create(this.gencache);
-        return { value: debate, done: false };
+        try {
+            this.debate.signal.throwIfAborted();
+        } catch (e) {
+            if (e instanceof Draft.AbortError) {} else throw e;
+            await this.gencache.throw(e).then(r => r.value);
+            this.debate = Debate.capture(this.gencache);
+        }
+        return { value: this.debate, done: false };
     }
 
     public async [Symbol.asyncDispose](): Promise<void> {

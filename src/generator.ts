@@ -23,28 +23,30 @@ export namespace Generator {
          * @param raw Ownership transferred.
          */
         protected constructor(
-            draft: Draft<draft>,
+            output: Draft<draft> | Opposition<opposition>,
             protected raw: Generator<draft, rejection, opposition>,
         ) {
-            this.draft = Draft.from([this.ac.signal, draft.signal], draft.extract());
+            if (output instanceof Draft.Instance) {} else throw new Error();
+            this.draft = Draft.from([output.signal, this.ac.signal], output.extract());
         }
 
+        protected mutex = Mutex.release();
         protected ac = new AbortController();
         protected draft: Draft<draft>;
-        protected mutex = Mutex.release();
 
         public async next(rejection: Rejection<rejection>): Promise<IteratorYieldResult<Draft<draft> | Opposition<opposition>>> {
             await this.mutex.acquire();
             try {
+                if (this.ac) {} else throw new Error();
                 const output = await this.raw.next(rejection).then(r => r.value);
                 if (output instanceof Opposition.Instance) return { value: output, done: false };
                 this.ac.abort(new Draft.AbortError());
                 this.ac = new AbortController();
-                this.draft = Draft.from(
+                const draft = Draft.from(
                     [this.ac.signal, output.signal],
                     output.extract(),
                 );
-                return { value: this.draft, done: false };
+                return { value: draft, done: false };
             } finally {
                 this.mutex.release();
             }
@@ -53,32 +55,32 @@ export namespace Generator {
         public async throw(e: Draft.AbortError): Promise<IteratorYieldResult<Draft<draft>>> {
             await this.mutex.acquire();
             try {
-                const output = await this.raw.throw(e).then(r => r.value);
-                if (output instanceof Draft.Instance) {} else throw new Error();
                 this.ac.abort(e);
+                const output = await this.raw.throw(e).then(r => r.value);
                 this.ac = new AbortController();
-                this.draft = Draft.from(
-                    [this.ac.signal, this.draft.signal],
+                if (output instanceof Draft.Instance) {} else throw new Error();
+                const draft = Draft.from(
+                    [this.ac.signal, output.signal],
                     output.extract(),
                 );
-                return { value: this.draft, done: false };
+                return { value: draft, done: false };
             } finally {
                 this.mutex.release();
             }
+        }
+
+        public current(): Draft<draft> {
+            return this.draft;
         }
 
         public [Symbol.asyncIterator](): this {
             return this;
         }
 
-        public lazy(): Draft<draft> {
-            return this.draft;
-        }
-
         public async [Symbol.asyncDispose](): Promise<void> {
             await this.mutex.acquire();
             try {
-                this.ac.abort(new Draft.AbortError());
+                this.ac?.abort(new Draft.AbortError());
                 return await this.raw[Symbol.asyncDispose]?.();
             } finally {
                 this.mutex.release();
@@ -88,11 +90,10 @@ export namespace Generator {
         /**
          * @param raw Ownership transferred.
          */
-        public static async from<draft, rejection, opposition>(
-            raw: Generator<draft, rejection, opposition>,
-        ): Promise<Generator.Cache<draft, rejection, opposition>> {
+        public static async from<output, rejection, opposition>(
+            raw: Generator<output, rejection, opposition>,
+        ): Promise<Generator.Cache<output, rejection, opposition>> {
             const output = await raw.next().then(r => r.value);
-            if (output instanceof Draft.Instance) {} else throw new Error();
             return new Generator.Cache(output, raw);
         }
 
