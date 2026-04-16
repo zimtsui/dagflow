@@ -16,15 +16,10 @@ export namespace Debate {
         }
 
         public async next(rejection: Rejection<rejection>): Promise<IteratorResult<Opposition<opposition>, void>> {
-            await this.gencache.mutex.acquire();
-            try {
-                if (this.signal.aborted) return { done: true, value: void undefined };
-                const output = await this.gencache.next(rejection);
-                if (output instanceof Opposition.Instance) return { done: false, value: output };
-                return { done: true, value: void undefined };
-            } finally {
-                this.gencache.mutex.release();
-            }
+            if (this.signal.aborted) return { done: true, value: void undefined };
+            const output = await this.gencache.next(rejection);
+            if (output instanceof Opposition.Instance) return { done: false, value: output };
+            return { done: true, value: void undefined };
         }
     }
 

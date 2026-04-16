@@ -27,12 +27,17 @@ export namespace Generator {
         ) {}
 
         public async next(feedback: void | Rejection<rejection>): Promise<IteratorYieldResult<Draft<draft> | Opposition<opposition>>> {
-            const output = await this.raw.next(feedback).then(r => r.value);
-            if (output instanceof Opposition.Instance) return { value: output, done: false };
-            this.ac.abort();
-            this.ac = new AbortController();
-            this.draft = Draft.from(this.ac.signal, output.extract());
-            return { value: this.draft, done: false };
+            await this.mutex.acquire();
+            try {
+                const output = await this.raw.next(feedback).then(r => r.value);
+                if (output instanceof Opposition.Instance) return { value: output, done: false };
+                this.ac.abort();
+                this.ac = new AbortController();
+                this.draft = Draft.from(this.ac.signal, output.extract());
+                return { value: this.draft, done: false };
+            } finally {
+                this.mutex.release();
+            }
         }
 
         public lazy(): Draft<draft> {
@@ -40,7 +45,12 @@ export namespace Generator {
         }
 
         public async [Symbol.asyncDispose](): Promise<void> {
-            return await this.raw[Symbol.asyncDispose]?.();
+            await this.mutex.acquire();
+            try {
+                return await this.raw[Symbol.asyncDispose]?.();
+            } finally {
+                this.mutex.release();
+            }
         }
 
         /**
@@ -56,6 +66,6 @@ export namespace Generator {
             return new Generator.Cache(draft, ac, raw);
         }
 
-        public mutex = Mutex.release();
+        protected mutex = Mutex.release();
     }
 }

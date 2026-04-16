@@ -19,12 +19,7 @@ export class Node<
     }
 
     public async [Symbol.asyncDispose](): Promise<void> {
-        await this.gencache.mutex.acquire();
-        try {
-            await this.gencache[Symbol.asyncDispose]?.();
-        } finally {
-            this.gencache.mutex.release();
-        }
+        await this.gencache[Symbol.asyncDispose]?.();
     }
 
     public static async from<draft, rejection, opposition>(
