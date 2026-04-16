@@ -30,7 +30,7 @@ export async function *evaluate(problem: string, optimizer: Node<string, string,
             });
         }
     } catch (e) {
-        if (e instanceof Draft.AbortError) {} else throw e;
+        if (e instanceof Draft.Expired) {} else throw e;
         debate = await optimizer.next().then(r => r.value);
         messages.push({
             role: 'user',

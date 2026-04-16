@@ -20,7 +20,7 @@ export class Node<
             const draft = this.gencache.current();
             draft.signal.throwIfAborted();
         } catch (e) {
-            if (e instanceof Draft.AbortError) {} else throw e;
+            if (e instanceof Draft.Expired) {} else throw e;
             await this.gencache.throw(e).then(r => r.value);
         } finally {
             this.gencache.mutex.release();
@@ -68,7 +68,7 @@ export class Node<
             for (let rejection = yield draft;;)
                 rejection = yield await thisDebate.next(rejection).then(r => r.value);
         } catch (e) {
-            if (e instanceof Draft.AbortError) {} else throw e;
+            if (e instanceof Draft.Expired) {} else throw e;
         }
     }
 
@@ -85,7 +85,7 @@ export class Node<
             yield draft;
             throw new Error();
         } catch (e) {
-            if (e instanceof Draft.AbortError) {} else throw e;
+            if (e instanceof Draft.Expired) {} else throw e;
         }
     }
 
@@ -99,7 +99,7 @@ export class Node<
             yield draft;
             throw new Error();
         } catch (e) {
-            if (e instanceof Draft.AbortError) {} else throw e;
+            if (e instanceof Draft.Expired) {} else throw e;
         }
     }
 }

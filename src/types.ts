@@ -20,7 +20,7 @@ export namespace Draft {
         return new Draft.Instance<draft>(AbortSignal.any(signals), raw as draft);
     }
 
-    export class AbortError extends Error {}
+    export class Expired extends Error {}
 }
 
 

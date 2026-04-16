@@ -9,7 +9,7 @@ export interface Generator<
     AsyncDisposable
 {
     next(...[rejection]: [] | [Rejection<rejection>]): Promise<IteratorResult<Draft<draft> | Opposition<opposition>, never>>;
-    throw(e: Draft.AbortError): Promise<IteratorResult<Draft<draft> | Opposition<opposition>, never>>;
+    throw(e: Draft.Expired): Promise<IteratorResult<Draft<draft> | Opposition<opposition>, never>>;
 }
 
 export namespace Generator {
@@ -38,7 +38,7 @@ export namespace Generator {
             if (this.ac) {} else throw new Error();
             const output = await this.raw.next(rejection).then(r => r.value);
             if (output instanceof Opposition.Instance) return { value: output, done: false };
-            this.ac.abort(new Draft.AbortError());
+            this.ac.abort(new Draft.Expired());
             this.ac = new AbortController();
             this.draft = Draft.from(
                 [this.ac.signal, output.signal],
@@ -47,7 +47,7 @@ export namespace Generator {
             return { value: this.draft, done: false };
         }
 
-        public async throw(e: Draft.AbortError): Promise<IteratorYieldResult<Draft<draft>>> {
+        public async throw(e: Draft.Expired): Promise<IteratorYieldResult<Draft<draft>>> {
             this.ac.abort(e);
             const output = await this.raw.throw(e).then(r => r.value);
             this.ac = new AbortController();
@@ -68,7 +68,7 @@ export namespace Generator {
         }
 
         public async [Symbol.asyncDispose](): Promise<void> {
-            this.ac.abort(new Draft.AbortError());
+            this.ac.abort(new Draft.Expired());
             return await this.raw[Symbol.asyncDispose]?.();
         }
 

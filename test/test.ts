@@ -39,7 +39,7 @@ test('generator cache throw refreshes the current draft', async t => {
             yield Draft.from([], 1);
             throw new Error();
         } catch (e) {
-            if (e instanceof Draft.AbortError) {
+            if (e instanceof Draft.Expired) {
                 yield Draft.from([], 2);
                 throw new Error();
             }
@@ -48,7 +48,7 @@ test('generator cache throw refreshes the current draft', async t => {
     }
 
     await using cache = await Generator.Cache.from(abortable());
-    const refreshed = await cache.throw(new Draft.AbortError()).then(r => r.value);
+    const refreshed = await cache.throw(new Draft.Expired()).then(r => r.value);
 
     t.is(refreshed.extract(), 2);
     t.is(cache.current().extract(), 2);
@@ -69,7 +69,7 @@ test('debate returns opposition and then expires after the cache advances', asyn
 
     await t.throwsAsync(
         () => debate.next(Rejection.from('again')),
-        { instanceOf: Draft.AbortError },
+        { instanceOf: Draft.Expired },
     );
 });
 
@@ -81,7 +81,7 @@ test('node.next captures the latest draft after another debate advances the cach
 
     await t.throwsAsync(
         () => debate1.next(Rejection.from('update')),
-        { instanceOf: Draft.AbortError },
+        { instanceOf: Draft.Expired },
     );
 
     const debate2 = await node.next().then(r => r.value);
@@ -100,7 +100,7 @@ test('node.map refreshes when the source node publishes a new draft', async t =>
     const sourceDebate = await source.next().then(r => r.value);
     await t.throwsAsync(
         () => sourceDebate.next(Rejection.from('update')),
-        { instanceOf: Draft.AbortError },
+        { instanceOf: Draft.Expired },
     );
 
     const mapped2 = await mapped.next().then(r => r.value);
@@ -119,7 +119,7 @@ test('node.all refreshes when any dependency publishes a new draft', async t => 
     const leftDebate = await left.next().then(r => r.value);
     await t.throwsAsync(
         () => leftDebate.next(Rejection.from('update')),
-        { instanceOf: Draft.AbortError },
+        { instanceOf: Draft.Expired },
     );
 
     const joined2 = await joined.next().then(r => r.value);
