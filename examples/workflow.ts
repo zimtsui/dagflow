@@ -1,18 +1,7 @@
 import { Node } from '@zimtsui/dagflow';
-declare function optimize(problem: string): Node.Generator<string, string, string>;
-declare function evaluate1(problem: string, dnm: evaluate1.DepNodeMap): Node.Generator<void, never, never>;
-declare namespace evaluate1 {
-    export type DepNodeMap = {
-        optimizer: Node<string, string, string>,
-    };
-}
-declare function evaluate2(problem: string, dnm: evaluate2.DepNodeMap): Node.Generator<boolean, never, never>;
-declare namespace evaluate2 {
-    export type DepNodeMap = {
-        optimizer: Node<number, string, string>,
-        evaluator1: Node<void, never, never>,
-    };
-}
+declare function optimize(problem: string): Generator<string, string, string>;
+declare function evaluate1(problem: string): Generator<void, never, never>;
+declare function evaluate2(problem: string): Generator<boolean, never, never>;
 
 
 export async function workflow(problem: string): Promise<boolean> {

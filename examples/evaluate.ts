@@ -1,11 +1,10 @@
-import { Draft, Rejection, Opposition, Node } from '@zimtsui/dagflow';
+import { Draft, Rejection, Node, Generator } from '@zimtsui/dagflow';
 import OpenAI from 'openai';
 declare const openai: OpenAI;
 
 
-export async function *evaluate(problem: string, dnm: Evaluate.DepNodeMap): Node.Generator<number, never, never> {
-    const optimizer = dnm.optimizer;
-    let draft = await optimizer.repeat();
+export async function *evaluate(problem: string, optimizer: Node<string, string, string>): Generator<number, never, never> {
+    let debate = await optimizer.next().then(r => r.value);
     const messages: OpenAI.ChatCompletionMessageParam[] = [
         {
             role: 'system',
@@ -14,36 +13,28 @@ export async function *evaluate(problem: string, dnm: Evaluate.DepNodeMap): Node
                 'Print only `ACCEPT` if it is correct. Print reason if it is incorrect.',
             ].join(' '),
         },
-        { role: 'user', content: `Problem: ${problem}\n\nAnswer: ${draft.extract()}` },
+        { role: 'user', content: `Problem: ${problem}\n\nAnswer: ${debate.extract()}` },
     ];
-    for (;;) {
+
+    for (;;) try {
         const completion = await openai.chat.completions.create({ model: 'gpt-4o', messages });
         messages.push(completion.choices[0]!.message);
         if (completion.choices[0]!.message.content === 'ACCEPT') {
-            yield Draft.from(Number.parseInt(draft.extract()));
-            const nextdraft = await optimizer.repeat();
-            messages.push({ role: 'user', content: `Problem: ${problem}\n\nAnswer: ${nextdraft.extract()}` });
+            yield Draft.from(debate.signal, Number.parseInt(debate.extract()));
+            throw new Error();
         } else {
-            const input = await optimizer.reject(Rejection.from(completion.choices[0]!.message.content!));
-            if (input instanceof Draft.Instance) {
-                draft = input;
-                messages.push({
-                    role: 'user',
-                    content: `The answer is updated: ${draft.extract()}\n\nPlease examine it again.`,
-                });
-            } else if (input instanceof Opposition.Instance) {
-                const opposition = input;
-                messages.push({
-                    role: 'user',
-                    content: `Your rejection is opposed: ${opposition.extract()}\n\nPlease examine it again.`,
-                });
-            } else throw new Error();
+            const opposition = await debate.next(Rejection.from(completion.choices[0]!.message.content!)).then(r => r.value);
+            messages.push({
+                role: 'user',
+                content: `Your rejection is opposed: ${opposition.extract()}\n\nPlease examine it again.`,
+            });
         }
+    } catch (e) {
+        if (e instanceof Draft.AbortError) {} else throw e;
+        debate = await optimizer.next().then(r => r.value);
+        messages.push({
+            role: 'user',
+            content: `The answer is updated: ${debate.extract()}\n\nPlease examine it again.`,
+        });
     }
-}
-
-export namespace Evaluate {
-    export type DepNodeMap = {
-        optimizer: Node<string, string, string>,
-    };
 }

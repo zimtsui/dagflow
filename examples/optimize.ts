@@ -1,9 +1,9 @@
-import { Draft, Opposition, Node } from '@zimtsui/dagflow';
+import { Draft, Opposition, Generator } from '@zimtsui/dagflow';
 import OpenAI from 'openai';
 declare const openai: OpenAI;
 
 
-async function *optimize(problem: string): Node.Generator<string, string, string> {
+export async function *optimize(problem: string): Generator<string, string, string> {
     const messages: OpenAI.ChatCompletionMessageParam[] = [
         {
             role: 'system',
@@ -20,7 +20,7 @@ async function *optimize(problem: string): Node.Generator<string, string, string
         messages.push(completion.choices[0]!.message);
         const feedback = completion.choices[0]!.message.content! === 'OPPOSE'
             ? yield Opposition.from('My answer is correct.')
-            : yield Draft.from(completion.choices[0]!.message.content!);
+            : yield Draft.from(new AbortSignal(), completion.choices[0]!.message.content!);
         if (feedback instanceof Opposition.Instance) {
             const rejection = feedback;
             messages.push({
@@ -29,8 +29,4 @@ async function *optimize(problem: string): Node.Generator<string, string, string
             });
         } else return yield *optimize(problem);
     }
-}
-
-export function create(problem: string): Node<string, string, string> {
-    return Node.create(optimize(problem), {});
 }
