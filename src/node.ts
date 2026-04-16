@@ -1,6 +1,6 @@
 import { Generator } from './generator.ts';
 import { Debate } from './debate.ts';
-import { Draft, Opposition, Rejection } from './types.ts';
+import { Draft } from './types.ts';
 
 
 
@@ -22,14 +22,24 @@ export class Node<
             this.debate.signal.throwIfAborted();
         } catch (e) {
             if (e instanceof Draft.AbortError) {} else throw e;
-            await this.gencache.throw(e).then(r => r.value);
-            this.debate = Debate.capture(this.gencache);
+            await this.gencache.mutex.acquire();
+            try {
+                await this.gencache.throw(e).then(r => r.value);
+                this.debate = Debate.capture(this.gencache);
+            } finally {
+                this.gencache.mutex.release();
+            }
         }
         return { value: this.debate, done: false };
     }
 
     public async [Symbol.asyncDispose](): Promise<void> {
-        await this.gencache[Symbol.asyncDispose]?.();
+        await this.gencache.mutex.acquire();
+        try {
+            await this.gencache[Symbol.asyncDispose]?.();
+        } finally {
+            this.gencache.mutex.release();
+        }
     }
 
     public static async from<draft, rejection, opposition>(
@@ -59,11 +69,8 @@ export class Node<
             const afterDebate = await after.next().then(r => r.value);
             const signals = [thisDebate.signal, afterDebate.signal];
             const draft = Draft.from(signals, await f(thisDebate.extract()));
-            for (let output: Draft<nextdraft> | Opposition<opposition> = draft;;) {
-                const rejection: Rejection<rejection> = yield output;
-                draft.signal.throwIfAborted();
-                output = await thisDebate.next(rejection).then(r => r.value);
-            }
+            for (let rejection = yield draft;;)
+                rejection = yield await thisDebate.next(rejection).then(r => r.value);
         } catch (e) {
             if (e instanceof Draft.AbortError) {} else throw e;
         }
@@ -91,8 +98,10 @@ export class Node<
     }
 
     protected static async *emptygen(): Generator<void, never, never> {
+        const draft = Draft.from([]);
         for (;;) try {
-            yield Draft.from([]);
+            yield draft;
+            throw new Error();
         } catch (e) {
             if (e instanceof Draft.AbortError) {} else throw e;
         }

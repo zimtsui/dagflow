@@ -21,11 +21,16 @@ export namespace Debate {
          * @throws {@link Draft.AbortError}
          */
         public async next(rejection: Rejection<rejection>): Promise<IteratorYieldResult<Opposition<opposition>>> {
-            this.signal.throwIfAborted();
-            const output = await this.gencache.next(rejection);
-            if (output instanceof Opposition.Instance) return { done: false, value: output };
-            this.signal.throwIfAborted();
-            throw new Error();
+            await this.gencache.mutex.acquire();
+            try {
+                this.signal.throwIfAborted();
+                const output = await this.gencache.next(rejection);
+                if (output instanceof Opposition.Instance) return { done: false, value: output };
+                this.signal.throwIfAborted();
+                throw new Error();
+            } finally {
+                this.gencache.mutex.release();
+            }
         }
     }
 
