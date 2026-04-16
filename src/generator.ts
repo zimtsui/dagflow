@@ -42,11 +42,11 @@ export namespace Generator {
                 if (output instanceof Opposition.Instance) return { value: output, done: false };
                 this.ac.abort(new Draft.AbortError());
                 this.ac = new AbortController();
-                const draft = Draft.from(
+                this.draft = Draft.from(
                     [this.ac.signal, output.signal],
                     output.extract(),
                 );
-                return { value: draft, done: false };
+                return { value: this.draft, done: false };
             } finally {
                 this.mutex.release();
             }
@@ -59,11 +59,11 @@ export namespace Generator {
                 const output = await this.raw.throw(e).then(r => r.value);
                 this.ac = new AbortController();
                 if (output instanceof Draft.Instance) {} else throw new Error();
-                const draft = Draft.from(
+                this.draft = Draft.from(
                     [this.ac.signal, output.signal],
                     output.extract(),
                 );
-                return { value: draft, done: false };
+                return { value: this.draft, done: false };
             } finally {
                 this.mutex.release();
             }
