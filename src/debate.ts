@@ -7,7 +7,9 @@ export namespace Debate {
 
     export class Instance<
         out draft, in rejection, out opposition,
-    > extends Draft.Instance<draft> implements AsyncIterator<Opposition<opposition>, void, Rejection<rejection>> {
+    > extends Draft.Instance<draft> implements
+        AsyncIterator<Opposition<opposition>, never, Rejection<rejection>>
+    {
         public constructor(
             protected gencache: Generator.Cache<draft, rejection, opposition>,
         ) {
@@ -15,11 +17,15 @@ export namespace Debate {
             super(draft.signal, draft.extract());
         }
 
-        public async next(rejection: Rejection<rejection>): Promise<IteratorResult<Opposition<opposition>, void>> {
-            if (this.signal.aborted) return { done: true, value: void undefined };
+        /**
+         * @throws {@link Draft.AbortError}
+         */
+        public async next(rejection: Rejection<rejection>): Promise<IteratorYieldResult<Opposition<opposition>>> {
+            this.signal.throwIfAborted();
             const output = await this.gencache.next(rejection);
             if (output instanceof Opposition.Instance) return { done: false, value: output };
-            return { done: true, value: void undefined };
+            this.signal.throwIfAborted();
+            throw new Error();
         }
     }
 

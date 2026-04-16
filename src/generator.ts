@@ -33,7 +33,7 @@ export namespace Generator {
             try {
                 const output = await this.raw.next(feedback).then(r => r.value);
                 if (output instanceof Opposition.Instance) return { value: output, done: false };
-                this.ac.abort();
+                this.ac.abort(new Draft.AbortError());
                 this.ac = new AbortController();
                 this.draft = Draft.from(this.ac.signal, output.extract());
                 return { value: this.draft, done: false };
@@ -49,7 +49,7 @@ export namespace Generator {
         public async [Symbol.asyncDispose](): Promise<void> {
             await this.mutex.acquire();
             try {
-                this.ac.abort();
+                this.ac.abort(new Draft.AbortError());
                 return await this.raw[Symbol.asyncDispose]?.();
             } finally {
                 this.mutex.release();

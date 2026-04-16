@@ -1,6 +1,7 @@
 const NOMINAL = Symbol();
 
 
+
 export type Draft<draft> = Draft.Instance<draft>;
 export namespace Draft {
     export class Instance<out draft> {
@@ -18,6 +19,8 @@ export namespace Draft {
     export function from<draft>(signal: AbortSignal, raw?: draft): Draft<draft> {
         return new Draft.Instance<draft>(signal, raw as draft);
     }
+
+    export class AbortError extends Error {}
 }
 
 
