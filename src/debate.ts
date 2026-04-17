@@ -18,7 +18,7 @@ export namespace Debate {
         }
 
         /**
-         * @throws {@link Draft.AbortError}
+         * @throws {@link Draft.Expired}
          */
         public async next(rejection: Rejection<rejection>): Promise<IteratorYieldResult<Opposition<opposition>>> {
             await this.gencache.mutex.acquire();
